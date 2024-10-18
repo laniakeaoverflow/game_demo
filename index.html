@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>克苏鲁图书馆 - 互动演示</title>
+<style>
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #f0f0f0;
+}
+#game-container {
+    width: 1000px;
+    height: 600px;
+    position: relative;
+    overflow: hidden;
+    background-color: #fff;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+#top-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50px;
+    background-color: rgba(60, 60, 60, 0.7);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+    color: #fff;
+    z-index: 10;
+}
+#battle-area {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 150px;
+    background-image: url('images/背景.png');
+    background-size: cover;
+    background-position: center;
+}
+.character {
+    position: absolute;
+    width: 120px;
+    height: 180px;
+    transition: transform 0.3s;
+}
+#player {
+    left: 100px;
+    bottom: 50px;
+}
+#enemy {
+    right: 100px;
+    bottom: 50px;
+}
+.health-bar-container, .sanity-bar-container {
+    position: absolute;
+    width: 100px;
+    height: 10px;
+    background-color: #333;
+    left: 10px;
+}
+.health-bar-container {
+    top: -50px;
+}
+.sanity-bar-container {
+    top: -35px;
+}
+.health-bar, .sanity-bar {
+    width: 100%;
+    height: 100%;
+    transition: width 0.5s;
+}
+.health-bar {
+    background-color: #ff0000;
+}
+.sanity-bar {
+    background-color: #00ff00;
+}
+.defense-icon {
+    position: absolute;
+    top: -20px;
+    left: 10px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: #4CAF50;
+    display: none;
+}
+#hand {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 150px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    perspective: 1000px;
+    background-color: rgba(60, 60, 60, 0.7);
+}
+.card {
+    width: 80px;
+    height: 120px;
+    transition: transform 0.3s;
+    cursor: grab;
+    user-select: none;
+    margin: 0 5px;
+    background-size: cover;
+    background-position: center;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    position: relative;
+}
+.card:active {
+    cursor: grabbing;
+}
+.card-name {
+    position: absolute;
+    bottom: 5px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 2px 0;
+    font-size: 12px;
+}
+#end-turn-button {
+    position: absolute;
+    padding: 10px 20px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+    z-index: 10;
+    bottom: 20px;
+    right: 20px;
+}
+#end-turn-button:hover {
+    background-color: #45a049;
+}
+#game-over {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    font-size: 24px;
+    z-index: 100;
+    display: none;
+}
+#restart-button {
+    margin-top: 20px;
+    padding: 10px 20px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+}
+#restart-button:hover {
+    background-color: #45a049;
+}
+.effect {
+    position: absolute;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.5s;
+}
+#defense-effect {
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle, rgba(76,175,80,0.5) 0%, rgba(76,175,80,0) 70%);
+}
+#spell-effect {
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle, rgba(139,0,255,0.5) 0%, rgba(139,0,255,0) 70%);
+}
+@keyframes shake {
+    0% { transform: translate(1px, 1px) rotate(0deg); }
+    10% { transform: translate(-1px, -2px) rotate(-1deg); }
+    20% { transform: translate(-3px, 0px) rotate(1deg); }
+    30% { transform: translate(3px, 2px) rotate(0deg); }
+    40% { transform: translate(1px, -1px) rotate(1deg); }
+    50% { transform: translate(-1px, 2px) rotate(-1deg); }
+    60% { transform: translate(-3px, 1px) rotate(0deg); }
+    70% { transform: translate(3px, 1px) rotate(-1deg); }
+    80% { transform: translate(-1px, -1px) rotate(1deg); }
+    90% { transform: translate(1px, 2px) rotate(0deg); }
+    100% { transform: translate(1px, -2px) rotate(-1deg); }
+}
+#game-rules {
+    position: absolute;
+    left: 10px;
+    bottom: 10px;
+    color: #fff;
+    font-size: 12px;
+    width: 200px;
+    text-align: left;
+    z-index: 10;
+}
+#enemy-description {
+    position: absolute;
+    right: 10px;
+    bottom: 160px;
+    color: #fff;
+    font-size: 12px;
+    width: 200px;
+    text-align: right;
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 5px;
+    display: none;
+}
+</style>
+</head>
+<body>
+<div id="game-container">
+    <div id="top-bar">
+        <span id="deck-info">牌堆: 20</span>
+        <span id="energy-info">能量: 3/3</span>
+    </div>
+    <div id="battle-area">
+        <div class="character" id="player">
+            <div class="health-bar-container">
+                <div id="player-health" class="health-bar"></div>
+            </div>
+            <div class="sanity-bar-container">
+                <div id="player-sanity" class="sanity-bar"></div>
+            </div>
+            <div id="player-defense" class="defense-icon"></div>
+            <img src="images/investigator.png" alt="调查员" style="width:100%; height:100%; object-fit:contain;">
+            <div id="defense-effect" class="effect"></div>
+        </div>
+        <div class="character" id="enemy">
+            <div class="health-bar-container">
+                <div id="enemy-health" class="health-bar"></div>
+            </div>
+            <div class="sanity-bar-container">
+                <div id="enemy-sanity" class="sanity-bar"></div>
+            </div>
+            <img src="images/cthulhu_monster.png" alt="克苏鲁怪物" style="width:100%; height:100%; object-fit:contain;">
+            <div id="spell-effect" class="effect"></div>
+        </div>
+    </div>
+    <div id="enemy-description"></div>
+    <div id="hand"></div>
+    <button id="end-turn-button">结束回合</button>
+    <div id="game-rules">
+        游戏规则：<br>
+        1. 拖动卡牌到战斗区域使用<br>
+        2. 打击：对怪物造成1点伤害<br>
+        3. 防御：获得1点护盾<br>
+        4. 咒语：降低怪物1点理智值<br>
+        5. 调查：了解怪物信息<br>
+        6. 每回合有3点能量<br>
+        7. 回合结束时怪物攻击<br>
+        8. 理智值为0或生命值为0时游戏结束<br>
+        9. 防御可抵挡一次攻击
+    </div>
+</div>
+<div id="game-over">
+    <h2 id="game-result"></h2>
+    <button id="restart-button">重新开始</button>
+</div>
+<script>
+let deck = [];
+let hand = [];
+let discardPile = [];
+let playerHealth = 10;
+let playerSanity = 3;
+let enemyHealth = 10;
+let enemySanity = 5;
+let playerDefense = 0;
+let energy = 3;
+let enemyDescription = "被赐福的无名村民，哀嚎的声音，不知是对赐福的感激还是懊悔...\n暴怒：理智降低时，攻击次数增加（被调查出后失效）";
+let isEnemyDescriptionRevealed = false;
+let investigateCount = 0;
+let enemyRageActive = true;
+
+function initializeDeck() {
+    deck = [];
+    for (let i = 0; i < 10; i++) deck.push("打击");
+    for (let i = 0; i < 5; i++) deck.push("防御");
+    for (let i = 0; i < 2; i++) deck.push("咒语");
+    for (let i = 0; i < 3; i++) deck.push("调查");
+    shuffleDeck();
+}
+
+function shuffleDeck() {
+    for (let i = deck.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [deck[i], deck[j]] = [deck[j], deck[i]];
+    }
+}
+
+function drawCard() {
+    if (deck.length === 0) {
+        if (discardPile.length === 0) return null;
+        deck = [...discardPile];
+        discardPile = [];
+        shuffleDeck();
+    }
+    return deck.pop();
+}
+
+function createCardElement(cardName) {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.style.backgroundImage = `url('images/${cardName}.png')`;
+    card.draggable = true;
+    card.addEventListener('dragstart', dragStart);
+    card.addEventListener('dragend', dragEnd);
+    
+    const cardNameElement = document.createElement('div');
+    cardNameElement.className = 'card-name';
+    cardNameElement.textContent = cardName;
+    card.appendChild(cardNameElement);
+    
+    return card;
+}
+
+function updateHand() {
+    const handElement = document.getElementById('hand');
+    handElement.innerHTML = '';
+    hand.forEach(card => {
+        handElement.appendChild(createCardElement(card));
+    });
+}
+
+function updateUI() {
+    document.getElementById('player-health').style.width = `${playerHealth * 10}%`;
+    document.getElementById('player-sanity').style.width = `${playerSanity * 33.33}%`;
+    document.getElementById('enemy-health').style.width = `${enemyHealth * 10}%`;
+    document.getElementById('enemy-sanity').style.width = `${enemySanity * 20}%`;
+    document.getElementById('deck-info').textContent = `牌堆: ${deck.length}`;
+    document.getElementById('energy-info').textContent = `能量: ${energy}/3`;
+    updateDefenseIcon();
+    updateEnemyDescription();
+}
+
+function updateDefenseIcon() {
+    const defenseIcon = document.getElementById('player-defense');
+    defenseIcon.style.display = playerDefense > 0 ? 'block' : 'none';
+}
+
+function updateEnemyDescription() {
+    const descriptionElement = document.getElementById('enemy-description');
+    if (investigateCount >= 1) {
+        descriptionElement.style.display = 'block';
+        descriptionElement.innerHTML = `怪物属性：<br>血量：${enemyHealth}/10<br>理智：${enemySanity}/5`;
+        
+        if (investigateCount >= 2) {
+            descriptionElement.innerHTML += `<br><br>${enemyDescription}`;
+        }
+    } else {
+        descriptionElement.style.display = 'none';
+    }
+}
+
+let draggedCard = null;
+
+function dragStart(e) {
+    draggedCard = e.target;
+    setTimeout(() => {
+        e.target.style.opacity = '0.5';
+    }, 0);
+}
+
+function dragEnd(e) {
+    e.target.style.opacity = '1';
+    draggedCard = null;
+}
+
+function onDragOver(e) {
+    e.preventDefault();
+}
+
+function onDrop(e) {
+    e.preventDefault();
+    if (draggedCard && energy > 0) {
+        const cardName = draggedCard.querySelector('.card-name').textContent;
+        if (cardName === "打击") {
+            useAttackCard();
+        } else if (cardName === "防御") {
+            useDefenseCard();
+        } else if (cardName === "咒语") {
+            useSpellCard();
+        } else if (cardName === "调查") {
+            useInvestigateCard();
+        }
+        energy--;
+        hand.splice(hand.indexOf(cardName), 1);
+        discardPile.push(cardName);
+        updateHand();
+        updateUI();
+        checkGameOver();
+    }
+}
+
+function useAttackCard() {
+    enemyHealth = Math.max(0, enemyHealth - 1);
+    shakeCharacter(document.getElementById('enemy'));
+}
+
+function useDefenseCard() {
+    playerDefense = 1;
+    showEffect('defense-effect');
+}
+
+function useSpellCard() {
+    enemySanity = Math.max(0, enemySanity - 1);
+    showEffect('spell-effect');
+}
+
+function useInvestigateCard() {
+    investigateCount++;
+    if (investigateCount === 2) {
+        enemyRageActive = false;
+        playerSanity = Math.max(0, playerSanity - 1);
+    }
+    updateEnemyDescription();
+}
+
+function endTurn() {
+    discardPile.push(...hand);
+    hand = [];
+    for (let i = 0; i < 5; i++) {
+        const card = drawCard();
+        if (card) hand.push(card);
+    }
+    energy = 3;
+    enemyTurn();
+    updateHand();
+    updateUI();
+    checkGameOver();
+}
+
+function enemyTurn() {
+    const enemy = document.getElementById('enemy');
+    const player = document.getElementById('player');
+    const attackTimes = enemyRageActive && enemySanity !== 5 ? 3 : 2;
+    
+    function performAttack(index) {
+        if (index < attackTimes) {
+            setTimeout(() => {
+                enemyAttack(enemy, player);
+                performAttack(index + 1);
+            }, 1000);
+        }
+    }
+    
+    performAttack(0);
+}
+
+function enemyAttack(enemy, player) {
+    enemy.style.transform = 'translateX(-50px)';
+    setTimeout(() => {
+        enemy.style.transform = 'translateX(0)';
+        if (Math.random() < 0.8) {
+            if (playerDefense > 0) {
+                playerDefense--;
+            } else {
+                playerHealth = Math.max(0, playerHealth - 1);
+                shakeCharacter(player);
+            }
+        } else {
+            if (playerDefense > 0) {
+                playerDefense--;
+            } else {
+                playerSanity = Math.max(0, playerSanity - 1);
+            }
+        }
+        updateUI();
+        checkGameOver();
+    }, 250);
+}
+
+function shakeCharacter(character) {
+    character.style.animation = 'shake 0.5s';
+    setTimeout(() => {
+        character.style.animation = '';
+    }, 500);
+}
+
+function showEffect(effectId) {
+    const effect = document.getElementById(effectId);
+    effect.style.opacity = '1';
+    setTimeout(() => {
+        effect.style.opacity = '0';
+    }, 500);
+}
+
+function checkGameOver() {
+    if (playerHealth <= 0 || playerSanity <= 0) {
+        gameOver("怪物胜利", "lose");
+    } else if (enemyHealth <= 0 || enemySanity <= 0) {
+        gameOver("调查员胜利", "win");
+    }
+}
+
+function gameOver(result, status) {
+    document.getElementById('game-over').style.display = 'flex';
+    document.getElementById('game-result').textContent = `游戏结束 - ${result}`;
+    document.getElementById('game-result').style.color = status === 'win' ? '#4CAF50' : '#ff0000';
+}
+
+function restart() {
+    playerHealth = 10;
+    playerSanity = 3;
+    enemyHealth = 10;
+    enemySanity = 5;
+    playerDefense = 0;
+    energy = 3;
+    hand = [];
+    discardPile = [];
+    investigateCount = 0;
+    enemyRageActive = true;
+    document.getElementById('enemy-description').style.display = 'none';
+    initializeDeck();
+    for (let i = 0; i < 5; i++) {
+        const card = drawCard();
+        if (card) hand.push(card);
+    }
+    updateHand();
+    updateUI();
+    document.getElementById('game-over').style.display = 'none';
+}
+
+const battleArea = document.getElementById('battle-area');
+battleArea.addEventListener('dragover', onDragOver);
+battleArea.addEventListener('drop', onDrop);
+
+const endTurnButton = document.getElementById('end-turn-button');
+endTurnButton.addEventListener('click', endTurn);
+
+const restartButton = document.getElementById('restart-button');
+restartButton.addEventListener('click', restart);
+
+restart(); // 初始化游戏
+</script>
+</body>
+</html>
